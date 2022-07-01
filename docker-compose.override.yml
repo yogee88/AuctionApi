@@ -1,0 +1,47 @@
+version: '3.4'
+
+services:
+  buyer:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - "DatabaseSettings:ConnectionString=mongodb:eAuctiondb:27017"
+    depends_on:
+      - eAuction.db
+      - rabbit.mq
+    ports:
+      - "5001:80"
+
+  identity:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - "DatabaseSettings:ConnectionString=mongodb:eAuctiondb:27017"
+    depends_on:
+      - eAuction.db      
+    ports:
+      - "5002:80"
+
+
+  seller:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - "DatabaseSettings:ConnectionString=mongodb:eAuctiondb:27017"
+    depends_on:
+      - eAuction.db
+      - rabbit.mq
+    ports:
+      - "5000:80"
+
+  eAuction.db:
+    container_name: eAuctiondb
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ${WEBAPP_STORAGE_HOME}/site:/data/db
+
+  rabbit.mq:
+    container_name: eAuction
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"

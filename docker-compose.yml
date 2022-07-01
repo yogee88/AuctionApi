@@ -1,0 +1,30 @@
+version: '3.4'
+
+services:
+  buyer:
+    image: ${DOCKER_REGISTRY-}buyer
+    build:
+      context: .
+      dockerfile: Buyer/Dockerfile
+
+  identity:
+    image: ${DOCKER_REGISTRY-}identity
+    build:
+      context: .
+      dockerfile: Identity/Dockerfile
+
+
+  seller:
+    image: ${DOCKER_REGISTRY-}seller
+    build:
+      context: .
+      dockerfile: Seller/Dockerfile
+
+  eAuction.db:
+    image: mongo
+
+  rabbit.mq:
+    image: rabbitmq:3-management-alpine          
+    expose:
+     - 5672
+     - 15672
