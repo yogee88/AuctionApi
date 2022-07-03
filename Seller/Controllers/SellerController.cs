@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.ServiceBus;
+using Microsoft.Extensions.Configuration;
 //using Microsoft.ServiceBus.Messaging;
 using Newtonsoft.Json;
 using Seller.Models;
@@ -27,22 +28,22 @@ namespace Seller.Controllers
         private readonly IRepository _repo;
         private readonly IMediator _mediator;
         private readonly IPublishEndpoint _publishEndPoint;
-        //private readonly IQueueClient _queueClient;
+        private readonly IQueueClient _queueClient;
         private readonly ServiceBusClient _client;
         private readonly ServiceBusSender _clientSender;
-        private const string queueName = "CreateProduct";
+        private const string queueName = "from-rabbitmq";
         ///private readonly CoreDbContext coreDbContext;
-        public SellerController(IRepository repo, IMediator mediator, IPublishEndpoint publishEndPoint)
+        public SellerController(IRepository repo, IMediator mediator, IPublishEndpoint publishEndPoint, IConfiguration configuration)
         {
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _publishEndPoint = publishEndPoint ?? throw new ArgumentNullException(nameof(publishEndPoint));
-            const string connectionString = "";
-            //var connectionString = configuration.GetConnectionString("ServiceBusConnectionString");
-            //_client = new ServiceBusClient(connectionString);
-            //_clientSender = _client.CreateSender(queueName);
+            //const string connectionString = "";
+            var connectionString = configuration.GetConnectionString("ServiceBusConnectionString");
+            _client = new ServiceBusClient(connectionString);
+            _clientSender = _client.CreateSender(queueName);
 
-            //_queueClient = new QueueClient(connectionString, queueName);
+            _queueClient = new QueueClient(connectionString, queueName);
         }
 
         [Route("api/Seller/AddProduct")]
@@ -140,7 +141,7 @@ namespace Seller.Controllers
             try
             {
                 Message message = BuildMessage(messageItem, messageLabel, messageProperties);
-                //await _queueClient.SendAsync(message);
+                await _queueClient.SendAsync(message);
             }
             catch (Exception ex)
             {

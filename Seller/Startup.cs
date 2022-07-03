@@ -71,18 +71,18 @@ namespace Seller
             });
 
             services.AddMassTransitHostedService();
-
+            services.AddSingleton<IConfiguration>(Configuration);
             //services.Configure<Database>(Configuration.GetSection("eAuctionDatabase"));
             //var builder = WebApplication.CreateBuilder(args);
 
-           // builder.Services.AddDbContext<MvcMovieContext>(options =>
-             //   options.UseSqlServer(builder.Configuration.GetConnectionString("MvcMovieContext")));
+            // builder.Services.AddDbContext<MvcMovieContext>(options =>
+            //   options.UseSqlServer(builder.Configuration.GetConnectionString("MvcMovieContext")));
 
             services.AddDbContext<CoreDbContext>(op => op.UseSqlServer(Configuration.GetConnectionString("WebApiDatabase"), options => options.EnableRetryOnFailure()));
             services.AddTransient<IRepository, Repository.Repository>();
            
             services.AddScoped<QueueConsumer>();
-            //services.AddSingleton<IQueueClient>(x => new QueueClient("ServiceBusConnectionString","QueueName"));
+            services.AddSingleton<IQueueClient>(x => new QueueClient("ServiceBusConnectionString","from-rabbitmq"));
             //services.AddSingleton<IQueueClient, QueueClient>();
 
         }
