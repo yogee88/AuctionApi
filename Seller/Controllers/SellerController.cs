@@ -10,6 +10,7 @@ using Microsoft.Azure.ServiceBus;
 using Microsoft.Extensions.Configuration;
 //using Microsoft.ServiceBus.Messaging;
 using Newtonsoft.Json;
+using RabbitMQ.Client;
 using Seller.Models;
 using Seller.Repository;
 using System;
@@ -39,38 +40,51 @@ namespace Seller.Controllers
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _publishEndPoint = publishEndPoint ?? throw new ArgumentNullException(nameof(publishEndPoint));
             //const string connectionString = "";
-            var connectionString = configuration.GetConnectionString("ServiceBusConnectionString");
+            var connectionString = configuration.GetSection("ServiceBusConnectionString").Value;
             _client = new ServiceBusClient(connectionString);
             _clientSender = _client.CreateSender(queueName);
 
-            _queueClient = new QueueClient(connectionString, queueName);
+           // _queueClient = new QueueClient(connectionString, queueName);
         }
 
         [Route("api/Seller/AddProduct")]
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] User user)
+        public async Task<IActionResult> Create([FromBody] ProductBid model)
         {
             try
             {
-                await _repo.InsertOrUpsert(user);
-                var product = user.Products.FirstOrDefault();
+                var user = await _repo.GetUserAsyncByEmail(model.EmailId);
+                model.BidderId = user.Id;
+                model.Phone = user.Phone;
+               
+
+                var product = await _repo.GetAsyncByName(model.Name);
+                model.ProductId = product.ProductId;
+                model.Name = user.FirstName + " " + user.LastName;
+                await _repo.InsertOrUpsert(model);
+              
                 if (product != null)
                 {
-                    var command = new ProductCommandEvent
+                    var eventQueue = new CommandEvent
                     {
-                        BidEndDate = product.BidEndDate,
-                        ProductId = product.ProductId,
-                        Name = product.Name,
-                        DetailedDescription = product.DetailedDescription,
-                        ShortDescription = product.ShortDescription,
-                        StartingPrice = product.StartingPrice
+                        ProductId = model.ProductId,
+                        BidAmount = model.BidAmount,
+                        CreatedDate = model.CreatedDate,
+                        UpdatedDate = model.UpdatedDate,
+                        BidderId = user.Id,
+                        EmailId = user.Email,
+                        Phone = user.Phone,
+                        Name = string.Format("{0} {1}", user.FirstName, user.LastName)
                     };
-                    await _publishEndPoint.Publish(command);
+
+                    //await _publishEndPoint.Publish(eventQueue);
 
                     //string messagePayload = JsonSerializer.Serialize(command);
-                    string messagePayload = JsonConvert.SerializeObject(command);
+                    string messagePayload = JsonConvert.SerializeObject(eventQueue);
+
+                    this.SendQueue(messagePayload);
                     ServiceBusMessage message = new ServiceBusMessage(messagePayload);
-                    await _clientSender.SendMessageAsync(message).ConfigureAwait(false);
+                    //await _clientSender.SendMessageAsync(message).ConfigureAwait(false);
                 }
 
 
@@ -161,6 +175,28 @@ namespace Seller.Controllers
                 }
             }
             return message;
+        }
+
+
+        private void SendQueue(string message)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                channel.QueueDeclare(queue: "azure1",
+                                     durable: false,
+                                     exclusive: false,
+                                     autoDelete: false,
+                                     arguments: null);
+
+                var body = Encoding.UTF8.GetBytes(message);
+
+                channel.BasicPublish(exchange: "",
+                                     routingKey: "azure1",
+                                     basicProperties: null,
+                                     body: body);
+            }
         }
     }
 }

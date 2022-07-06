@@ -2,11 +2,15 @@
 using EventBus.Messages.Events;
 using MassTransit;
 using MediatR;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using Seller.Models;
 using Seller.Repository;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Seller.QueueHandlers
@@ -33,12 +37,13 @@ namespace Seller.QueueHandlers
                 CreatedDate = productBid.CreatedDate,
                 UpdatedDate = productBid.UpdatedDate,
                 EmailId = productBid.EmailId,
-                BidderId = productBid.BidderId,                
+                BidderId = productBid.BidderId,
                 Phone = productBid.Phone,
                 Name = productBid.Name
             };
             //await _repo.CreateProductBids(eventQueue);
             var isInserted = await this._mediator.Send(eventQueue);
         }
+
     }
 }

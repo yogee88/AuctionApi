@@ -25,6 +25,11 @@ namespace Seller.Repository
 
         public async Task<List<Product>> GetAsync(int id) =>
             await this.coreDbContext.Product.Where(x => x.UserId == id).ToListAsync();
+        public async Task<User> GetUserAsyncByEmail(string email) =>
+           await this.coreDbContext.User.Where(x => x.Email == email).FirstOrDefaultAsync();
+
+        public async Task<Product> GetAsyncByName(string name) =>
+           await this.coreDbContext.Product.Where(x => x.Name == name).FirstOrDefaultAsync();
 
         public async Task CreateAsync(User user)
         {
@@ -45,20 +50,27 @@ namespace Seller.Repository
             await this.coreDbContext.SaveChangesAsync();
         }
 
-        public async Task InsertOrUpsert(User user)
+        public async Task InsertOrUpsert(ProductBid bid)
         {
-            //if (user.Id > 0)
-            //{
-            //    // Update
-            //    var filter = Builders<User>.Filter.Where(x => x.Id == user.Id);
-            //    var update = Builders<User>.Update.AddToSet<Product>("Products", user.Products.FirstOrDefault());
-            //    await _collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
-            //}
-            //else
-            //{
-            //user.Products.FirstOrDefault().ProductId = Convert.TGuid.NewGuid());
-            await CreateAsync(user);
-            //  }
+            if (bid.ProductId > 0)
+            {
+
+                var productBid = await this.coreDbContext.ProductBid.Where(x => x.ProductId == bid.ProductId && x.BidderId == bid.BidderId).FirstOrDefaultAsync();
+
+                if (productBid != null && productBid.ProductBidId > 0)
+                {
+                    productBid.BidAmount = bid.BidAmount;
+                    productBid.UpdatedDate = DateTime.UtcNow;
+                    productBid.Phone = bid.Phone;
+
+                    this.coreDbContext.ProductBid.Update(productBid);
+                    await this.coreDbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    await CreateProductBids(bid);
+                }
+            }
         }
 
         public async Task<bool> DeleteProduct(int id)
@@ -87,7 +99,9 @@ namespace Seller.Repository
 
         public async Task CreateProductBids(ProductBid bids)
         {
-            //await _bidscollection.InsertOneAsync(bids);
+            bids.CreatedDate = DateTime.UtcNow;
+            await this.coreDbContext.ProductBid.AddAsync(bids);
+            await this.coreDbContext.SaveChangesAsync();
             return;
         }
 

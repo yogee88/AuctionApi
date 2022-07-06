@@ -15,12 +15,15 @@ namespace Seller.Repository
 
         public Task CreateAsync(User user);
 
-        public Task InsertOrUpsert(User user);
+        public Task InsertOrUpsert(ProductBid bid);
 
         public Task<bool> DeleteProduct(int id);
 
         public Task CreateProductBids(ProductBid bids);
 
         public Task<ProductBidsResponse> GetProductBids(int productId);
+
+        public Task<Product> GetAsyncByName(string name);
+        public Task<User> GetUserAsyncByEmail(string email);
     }
 }
